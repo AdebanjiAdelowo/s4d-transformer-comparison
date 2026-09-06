@@ -5,7 +5,7 @@ that a fair, controlled comparison isolates the mixer as the only
 architectural difference (see architecture.md, Section 7).
 
 The attention path (CausalSelfAttention, MLP, Block skeleton) is adapted
-from this candidate's own nano-gpt repository (an engineering-reuse
+from the author's own nano-gpt repository (an engineering-reuse
 decision, not a source for any S4D theory -- see architecture.md's source
 list). The S4D path uses S4DLayer from s4d.py.
 """
@@ -37,7 +37,7 @@ class BackboneConfig:
 
 
 class CausalSelfAttention(nn.Module):
-    """Adapted from nano-gpt/model.py (this candidate's own repository)."""
+    """Adapted from nano-gpt/model.py (the author's own repository)."""
 
     def __init__(self, config: BackboneConfig) -> None:
         super().__init__()

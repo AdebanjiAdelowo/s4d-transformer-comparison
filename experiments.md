@@ -3,7 +3,7 @@
 ## Task and data
 
 Character-level language modeling on Tiny Shakespeare (same corpus and 90/10 train/val split as
-this candidate's `nano-gpt` repository), predicting the next character given a context window.
+the author's `nano-gpt` repository), predicting the next character given a context window.
 Cross-entropy loss is the training objective, so `exp(val_loss)` is the standard definition of
 perplexity, not an approximation (see `src/train.py`).
 

@@ -1,6 +1,6 @@
 """
-Character-level Tiny Shakespeare data pipeline, adapted directly from this
-candidate's own nano-gpt/train.py -- reused for engineering consistency (so
+Character-level Tiny Shakespeare data pipeline, adapted directly from the
+author's own nano-gpt/train.py -- reused for engineering consistency (so
 both architectures under comparison see byte-identical batches), not as a
 source for any S4D claim.
 """

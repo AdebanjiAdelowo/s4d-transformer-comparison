@@ -14,9 +14,9 @@ Primary sources used (fetched and read directly from arXiv, not from any pre-exi
    ICLR 2022 (arXiv:2111.00396), cited by [S4D] as the source of the HiPPO-LegS matrix and the
    original DPLR (diagonal-plus-low-rank) construction; referenced here for context only, not
    implemented.
-3. Karpathy-style nanoGPT: the Transformer baseline architecture already implemented in this
-   candidate's own `nano-gpt` repository (attention mechanism, not SSM theory; that repo is not
-   used as a source for any S4D claim, per the task constraint).
+3. Karpathy-style nanoGPT: the Transformer baseline architecture already implemented in the
+   author's own `nano-gpt` repository (attention mechanism, not SSM theory; that repo is not
+   used as a source for any S4D claim).
 
 ---
 
