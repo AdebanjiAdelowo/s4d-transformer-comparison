@@ -1,0 +1,62 @@
+{
+  "tag": "context_length_sweep",
+  "mixer": "s4d",
+  "device": "mps",
+  "config": {
+    "block_size": 64,
+    "n_layer": 4,
+    "n_embd": 128,
+    "n_head": null,
+    "s4d_state": 64,
+    "batch_size": 32,
+    "max_iters": 1200,
+    "lr": 0.001,
+    "seed": 42
+  },
+  "params": {
+    "total": 702336,
+    "excl_embeddings": 702336
+  },
+  "loss_curve": {
+    "steps": [
+      0,
+      200,
+      400,
+      600,
+      800,
+      1000,
+      1200
+    ],
+    "train_loss": [
+      4.190435409545898,
+      2.236984968185425,
+      1.9687490463256836,
+      1.8275026082992554,
+      1.7306934595108032,
+      1.6758863925933838,
+      1.6610877513885498
+    ],
+    "val_loss": [
+      4.190053462982178,
+      2.2574191093444824,
+      2.027325391769409,
+      1.9287569522857666,
+      1.8634278774261475,
+      1.825717568397522,
+      1.799870252609253
+    ]
+  },
+  "final_train_loss": 1.6610877513885498,
+  "final_val_loss": 1.799870252609253,
+  "final_val_perplexity": 6.048862589358345,
+  "timing": {
+    "total_seconds": 23.3246009349823,
+    "mean_step_seconds": 0.01681980848312378,
+    "tokens_per_second": 105365.14673286799
+  },
+  "memory": {
+    "peak_process_rss_bytes": 446660608,
+    "mps_current_allocated_bytes_sampled_max": 36760320,
+    "note": "peak_process_rss_bytes is whole-process peak resident memory (coarse but device-independent). mps_current_allocated_bytes_sampled_max is sampled only at eval_interval checkpoints (not every step), so it is a LOWER BOUND on true peak MPS tensor allocation, not an exact peak -- torch's MPS backend does not expose a max_memory_allocated()-style true-peak counter the way CUDA does. Documented here rather than silently presented as an exact figure."
+  }
+}
