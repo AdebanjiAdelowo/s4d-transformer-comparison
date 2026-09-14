@@ -48,7 +48,14 @@ def test_recurrent_matches_convolutional(h_dim, n_state, length, batch, seed):
             ys.append(y_t)
         y_rec = torch.stack(ys, dim=1)
 
-    max_abs_diff = (y_conv - y_rec).abs().max().item()
+    diff = (y_conv - y_rec).abs()
+    max_abs_diff = diff.max().item()
+    mean_abs_diff = diff.mean().item()
+    print(
+        f"[test_recurrent_matches_convolutional h_dim={h_dim} n_state={n_state} "
+        f"length={length} batch={batch} seed={seed}] "
+        f"max_abs_diff={max_abs_diff:.3e} mean_abs_diff={mean_abs_diff:.3e}"
+    )
     # float32 arithmetic through an FFT (conv path) vs. direct recurrence (step path)
     # accumulate rounding differently; 1e-4 is a generous but still meaningful bound
     # given the recurrence involves L sequential multiplications by Abar.
@@ -80,7 +87,13 @@ def test_recurrent_matches_convolutional_after_training_step():
             ys.append(y_t)
         y_rec = torch.stack(ys, dim=1)
 
-    max_abs_diff = (y_conv - y_rec).abs().max().item()
+    diff = (y_conv - y_rec).abs()
+    max_abs_diff = diff.max().item()
+    mean_abs_diff = diff.mean().item()
+    print(
+        f"[test_recurrent_matches_convolutional_after_training_step] "
+        f"max_abs_diff={max_abs_diff:.3e} mean_abs_diff={mean_abs_diff:.3e}"
+    )
     assert max_abs_diff < 1e-4, f"post-training-step mismatch: max abs diff = {max_abs_diff}"
 
 

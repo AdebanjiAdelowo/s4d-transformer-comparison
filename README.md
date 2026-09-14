@@ -47,8 +47,11 @@ hyperparameter tuning per architecture, a ~12% parameter-count mismatch, single 
 
 `tests/test_s4d_numerics.py` checks that the training-time convolutional kernel (materialized via
 the Vandermonde formula, S4D eq. 7) and the step-by-step recurrence (`x_t = Ā x_{t-1} + B̄ u_t`)
-compute the same function, both at initialization and after an optimizer step: max absolute
-difference ~2e-7 to ~2e-6 across the tested configurations (float32 precision), not assumed equal.
+compute the same function, both at initialization and after an optimizer step: measured max
+absolute difference ~9e-8 to ~2.4e-6 across the tested configurations (float32 precision, four
+`h_dim`/`n_state`/length/batch/seed combinations including a post-optimizer-step check), not
+assumed equal. The test prints the actual max/mean absolute difference per configuration; reproduce
+with `pytest tests/test_s4d_numerics.py -v -s -k recurrent_matches_convolutional`.
 
 ```bash
 pip install -r requirements.txt
