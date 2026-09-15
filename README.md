@@ -77,11 +77,8 @@ python experiments/make_plots.py
 Not a Mamba/selective-SSM implementation, not a large-scale or multi-GPU training result, not a
 parameter-matched study, and not a claim of state-of-the-art anything. See `experiments.md`.
 
-## Remaining Work
+## Possible Extensions
 
-A possible extension is adding a from-scratch Mamba (selective-SSM) mixer to this controlled
-comparison harness. Not yet started; flagged risk is that no MPS/CUDA-kernel-free implementation
-of Mamba's selective scan matches official throughput on Apple Silicon, so any resulting
-three-way throughput comparison would need heavy caveating. Portfolio-wide project status is
-tracked centrally in the author's Selected Projects documentation; this project's status there is
-DEFERRED RESEARCH.
+Adding a from-scratch Mamba (selective-SSM) mixer to this controlled comparison harness. A
+three-way throughput comparison would need heavy caveating, since no MPS/CUDA-kernel-free
+implementation of Mamba's selective scan matches official throughput on Apple Silicon.
