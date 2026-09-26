@@ -6,9 +6,8 @@ from-scratch causal Transformer (reusing the causal-attention implementation fro
 [nano-gpt](https://github.com/AdebanjiAdelowo/nano-gpt)) on character-level language modeling, across
 context lengths from 64 to 1024.
 
-This is a research project, not a demo: the goal was scientific correctness and an honest account of
-what was and wasn't controlled, not a flattering headline number. See `experiments.md` for the full
-limitations list before quoting any result from this repository.
+`experiments.md` states exactly what was and was not controlled; read its limitations list before
+quoting any result from this repository.
 
 ## Motivation
 
@@ -31,6 +30,40 @@ training conditions, as a controlled empirical study of a non-Transformer sequen
 - **`experiments/`**: the context-length sweep and the plotting/table-generation script.
 - **`experiments.md`**: results, interpretation, and limitations (read before citing any number).
 
+The shared backbone (`src/model.py`). Only the mixer and the learned positional embedding differ
+between the two models; the S4D model has no positional embedding because the convolution kernel
+already depends on position:
+
+```mermaid
+flowchart TD
+    T["token ids"] --> E["token embedding<br/>(tied with LM head)"]
+    E --> PE{"mixer = attn?"}
+    PE -->|yes| POS["+ learned positional embedding"]
+    PE -->|no| BL
+    POS --> BL
+    subgraph BL["Block × n_layer (pre-norm)"]
+        LN1["LayerNorm"] --> MX{"mixer"}
+        MX -->|attn| AT["causal self-attention"]
+        MX -->|s4d| S4["S4D layer + output projection"]
+        AT --> R1["residual add"]
+        S4 --> R1
+        R1 --> LN2["LayerNorm"] --> MLP["MLP 4×, GELU"] --> R2["residual add"]
+    end
+    BL --> LNF["final LayerNorm"] --> H["LM head → next-character logits"]
+```
+
+Inside the S4D layer (`src/s4d.py`) the same linear state-space model is evaluated in two ways;
+`tests/test_s4d_numerics.py` checks that they agree:
+
+```mermaid
+flowchart LR
+    P["per channel: log Δt, A = −exp(A_re) + i A_im,<br/>B, C (N/2 conjugate pairs)"] --> Z["ZOH discretisation<br/>Ā = exp(ΔtA), B̄ = (exp(ΔtA) − 1)/A · B"]
+    Z --> K["kernel K_l = 2 Re(C Āˡ B̄)<br/>Vandermonde, l = 0..L−1"]
+    K --> CV["training: causal convolution y = K * u<br/>via zero-padded FFT"]
+    Z --> RC["step view: x_t = Ā x_(t−1) + B̄ u_t<br/>y_t = 2 Re(C x_t)"]
+    CV <-.equal to float32 precision.-> RC
+```
+
 ## Headline result (read the caveats in `experiments.md` first)
 
 Across context lengths 64–1024, on char-level Tiny Shakespeare, with the *same* optimizer, LR
@@ -43,7 +76,13 @@ hyperparameter tuning per architecture, a ~12% parameter-count mismatch, single 
 
 ![scaling](figures/scaling.png)
 
-## Numerical validation (the part that has to be right before any of the above means anything)
+![Validation loss against training step for attention and S4D at each context length](figures/loss_curves.png)
+
+*Validation loss against step for each context length. The block_size = 1024 runs use 400
+iterations instead of 1,200 for both mixers, so compare the two mixers within a panel, not across
+panels (see `experiments.md`).*
+
+## Numerical validation
 
 `tests/test_s4d_numerics.py` checks that the training-time convolutional kernel (materialized via
 the Vandermonde formula, S4D eq. 7) and the step-by-step recurrence (`x_t = Ā x_{t-1} + B̄ u_t`)
