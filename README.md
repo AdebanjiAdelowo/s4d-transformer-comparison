@@ -68,11 +68,15 @@ flowchart LR
 
 Across context lengths 64–1024, on char-level Tiny Shakespeare, with the *same* optimizer, LR
 schedule, batch size, seed, and model depth/width for both mixers (see `experiments.md` for exactly
-what was and wasn't controlled): S4D reached lower validation loss than the Transformer at every
-context length tested, and became substantially cheaper per token as context length grew (at
-block_size=1024: ~172.9k vs. ~38.2k training tokens/second). This is **not** presented as "S4D
-beats Transformers" in general; see `experiments.md`'s Limitations section for why (no
-hyperparameter tuning per architecture, a ~12% parameter-count mismatch, single dataset/seed/scale).
+what was and wasn't controlled): after a fixed budget of 1,200 training steps (400 at
+block_size=1024), S4D reached lower validation loss than the Transformer at every context length
+tested, and became substantially cheaper per token as context length grew (at block_size=1024:
+~172.9k vs. ~38.2k training tokens/second on Apple MPS, 4.5x; at block_size=64 S4D is slower,
+~105k vs. ~138k). The attention mixer is a plain implementation (explicit softmax over the full
+score matrix, no fused kernel), so the throughput ratio is specific to this implementation and
+device. Neither model is trained to convergence, and the result does not show that S4D is better
+than Transformers in general; see `experiments.md`'s Limitations section (no hyperparameter
+tuning per architecture, a ~12% parameter-count mismatch, single dataset/seed/scale).
 
 ![scaling](figures/scaling.png)
 
