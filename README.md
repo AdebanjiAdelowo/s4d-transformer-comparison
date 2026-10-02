@@ -104,9 +104,14 @@ pytest tests/ -v
 ## Reproducing the experiments
 
 ```bash
-python experiments/run_context_length_sweep.py   # ~20 min on Apple M-series (MPS)
-python experiments/make_plots.py
+python experiments/run_context_length_sweep.py --device mps   # ~20 min on Apple M-series, writes results/mps/
+python experiments/make_plots.py --results_dir results/mps      # figures and table for that sweep
 ```
+
+New sweeps are written to `results/<device>/`, separate from the recorded MPS results in
+`results/*.json` (which `python experiments/make_plots.py` without arguments plots into
+`figures/`). See `REMOTE_GPU.md` for device selection (`--device cpu|mps|cuda`), a Colab notebook
+for NVIDIA GPUs, and the timing and memory definitions.
 
 ## Primary sources
 

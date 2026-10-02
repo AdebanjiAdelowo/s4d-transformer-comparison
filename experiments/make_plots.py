@@ -7,8 +7,13 @@ produces:
 
 This script only reads numbers that are actually in the JSON files -- it does
 not compute or assume anything about results that were not logged.
+
+With --results_dir (e.g. results/cuda), it reads that directory instead and
+writes the figures and summary table into the same directory, so plotting a
+new hardware dataset never replaces the tracked MPS figures above.
 """
 
+import argparse
 import json
 from pathlib import Path
 
@@ -17,7 +22,6 @@ import matplotlib.pyplot as plt
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS_DIR = ROOT / "results"
 FIGURES_DIR = ROOT / "figures"
-FIGURES_DIR.mkdir(exist_ok=True)
 
 
 def load_sweep_results():
@@ -131,9 +135,16 @@ def write_summary_table(runs):
 
 
 if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--results_dir", type=str, default=None,
+                    help="read this directory and write outputs into it (default: historical results/)")
+    cli = ap.parse_args()
+    if cli.results_dir and Path(cli.results_dir).resolve() != RESULTS_DIR:
+        RESULTS_DIR = FIGURES_DIR = Path(cli.results_dir).resolve()
+    FIGURES_DIR.mkdir(exist_ok=True)
     runs = load_sweep_results()
     if not runs:
-        raise SystemExit("No sweep results found in results/*_bs*.json -- run experiments/run_context_length_sweep.py first.")
+        raise SystemExit(f"No sweep results found in {RESULTS_DIR}/*_bs*.json -- run experiments/run_context_length_sweep.py first.")
     print(f"Loaded {len(runs)} runs.")
     plot_loss_curves(runs)
     plot_scaling(runs)

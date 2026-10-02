@@ -108,7 +108,11 @@ Figures: `figures/loss_curves.png` (val loss vs. step, one panel per context len
 
 ```bash
 pip install -r requirements.txt
-pytest tests/ -v                                   # numerical validation, ~1.5s
-python experiments/run_context_length_sweep.py      # full sweep, ~20 min on Apple M-series MPS
-python experiments/make_plots.py                    # regenerates figures/ and results/summary_table.md
+pytest tests/ -v                                   # numerical and device/output tests
+python experiments/run_context_length_sweep.py --device mps   # full sweep, ~20 min on Apple M-series, writes results/mps/
+python experiments/make_plots.py --results_dir results/mps      # figures and table for that sweep
+python experiments/make_plots.py                    # regenerates figures/ and results/summary_table.md from the recorded results/*.json
 ```
+
+Other devices (CPU, NVIDIA CUDA, Colab) and the timing and memory definitions are described in
+`REMOTE_GPU.md`.

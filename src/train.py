@@ -13,6 +13,7 @@ import json
 import math
 import os
 import resource
+import statistics
 import sys
 import time
 import warnings
@@ -27,7 +28,25 @@ warnings.filterwarnings("ignore", message=".*resized since it had shape.*")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from data import get_batch, load_tinyshakespeare  # noqa: E402
+from device import DEVICE_CHOICES, device_metadata, resolve_device  # noqa: E402
 from model import BackboneConfig, SequenceBackbone  # noqa: E402
+
+# The tracked results/*.json files are the historical Apple MPS dataset quoted in README.md.
+# New runs go to per-device subdirectories (results/<device>/...) and may never replace them.
+HISTORICAL_RESULTS_DIR = Path(__file__).resolve().parents[1] / "results"
+
+
+def check_output_path(out: str, overwrite: bool) -> None:
+    path = Path(out).resolve()
+    if not path.exists():
+        return
+    if path.parent == HISTORICAL_RESULTS_DIR:
+        raise SystemExit(
+            f"error: refusing to overwrite historical MPS result {path}; "
+            "write new runs under results/<device>/ instead"
+        )
+    if not overwrite:
+        raise SystemExit(f"error: {path} already exists; pass --overwrite to replace it")
 
 
 def parse_args():
@@ -51,18 +70,23 @@ def parse_args():
     p.add_argument("--data_dir", type=str, default="data")
     p.add_argument("--out", type=str, required=True, help="path to write result JSON")
     p.add_argument("--tag", type=str, default="", help="free-text label stored in the result JSON")
+    p.add_argument("--device", choices=DEVICE_CHOICES, default="auto",
+                   help="auto = CUDA, then MPS, then CPU; an explicit device fails if unavailable")
+    p.add_argument("--overwrite", action="store_true",
+                   help="allow replacing an existing --out file (never a historical results/*.json)")
     return p.parse_args()
 
 
 def main():
     args = parse_args()
+    check_output_path(args.out, args.overwrite)
     torch.manual_seed(args.seed)
 
-    device = (
-        "cuda" if torch.cuda.is_available()
-        else "mps" if torch.backends.mps.is_available()
-        else "cpu"
-    )
+    try:
+        device = resolve_device(args.device)
+    except RuntimeError as e:
+        raise SystemExit(f"error: {e}")
+    print(f"device: requested={args.device} resolved={device}")
 
     ds = load_tinyshakespeare(args.data_dir)
 
@@ -113,6 +137,13 @@ def main():
     train_losses, val_losses, loss_steps = [], [], []
     mps_peak_sampled = 0  # sampled only at eval_interval -- documented limitation, see README
     step_times = []  # wall-clock seconds per optimizer step (forward+backward+update)
+    eval_seconds = 0.0  # wall-clock seconds spent inside estimate_loss()
+
+    if device == "cuda":
+        # True peak over the measured region (training loop incl. evals); the model and
+        # optimizer object already exist, so their parameters count towards the peak.
+        torch.cuda.synchronize()
+        torch.cuda.reset_peak_memory_stats()
 
     t_start = time.time()
     for step in range(args.max_iters + 1):
@@ -121,7 +152,9 @@ def main():
             pg["lr"] = lr
 
         if step % args.eval_interval == 0:
-            ev = estimate_loss()
+            t_eval = time.time()
+            ev = estimate_loss()  # ends in loss.item(), which synchronizes the device
+            eval_seconds += time.time() - t_eval
             train_losses.append(ev["train"])
             val_losses.append(ev["val"])
             loss_steps.append(step)
@@ -151,6 +184,11 @@ def main():
         step_times.append(time.time() - t0)
 
     total_time = time.time() - t_start
+    cuda_max_allocated = cuda_max_reserved = None
+    if device == "cuda":
+        torch.cuda.synchronize()
+        cuda_max_allocated = torch.cuda.max_memory_allocated()
+        cuda_max_reserved = torch.cuda.max_memory_reserved()
     peak_rss_bytes = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * (
         1024 if sys.platform != "darwin" else 1  # macOS reports bytes, Linux reports KB
     )
@@ -165,6 +203,7 @@ def main():
         "tag": args.tag,
         "mixer": args.mixer,
         "device": device,
+        "device_info": device_metadata(args.device, device),
         "config": {
             "block_size": args.block_size,
             "n_layer": args.n_layer,
@@ -193,10 +232,43 @@ def main():
             "mean_step_seconds": sum(step_times) / len(step_times) if step_times else None,
             "tokens_per_second": (args.batch_size * args.block_size * len(step_times)) / total_time
             if step_times else None,
+            "eval_seconds": eval_seconds,
+            "median_step_seconds": statistics.median(step_times) if step_times else None,
+            "train_step_tokens_per_second": (args.batch_size * args.block_size * len(step_times))
+            / sum(step_times) if step_times else None,
+            "definitions": {
+                "tokens_per_second": (
+                    "training tokens processed / total_seconds. total_seconds spans the whole "
+                    "loop, so it includes periodic evaluation (eval_seconds), CPU-side batch "
+                    "assembly, and host-to-device copies. Same definition as the historical "
+                    "results/*.json files."
+                ),
+                "mean_step_seconds": (
+                    "mean wall-clock time per optimizer step, from after batch assembly to after "
+                    "optimizer.step() followed by a device synchronize (torch.cuda.synchronize "
+                    "or torch.mps.synchronize). Includes the host-to-device batch copy; "
+                    "excludes evaluation and CPU batch assembly."
+                ),
+                "median_step_seconds": "median of the same per-step times; robust to warm-up steps",
+                "train_step_tokens_per_second": (
+                    "training tokens processed / sum of per-step times, i.e. step-only "
+                    "throughput. Not comparable with tokens_per_second."
+                ),
+            },
         },
         "memory": {
             "peak_process_rss_bytes": peak_rss_bytes,
             "mps_current_allocated_bytes_sampled_max": mps_peak_sampled or None,
+            "cuda_max_memory_allocated_bytes": cuda_max_allocated,
+            "cuda_max_memory_reserved_bytes": cuda_max_reserved,
+            "device_memory_api": {
+                "mps": "torch.mps.current_allocated_memory(), sampled at eval checkpoints (lower bound)",
+                "cuda": (
+                    "torch.cuda.max_memory_allocated() / max_memory_reserved(), exact peak since "
+                    "torch.cuda.reset_peak_memory_stats() immediately before step 0"
+                ),
+                "cpu": None,
+            }[device],
             "note": (
                 "peak_process_rss_bytes is whole-process peak resident memory (coarse but "
                 "device-independent). mps_current_allocated_bytes_sampled_max is sampled only at "
@@ -204,11 +276,19 @@ def main():
                 "MPS tensor allocation, not an exact peak -- torch's MPS backend does not expose "
                 "a max_memory_allocated()-style true-peak counter the way CUDA does. Documented "
                 "here rather than silently presented as an exact figure."
+                + (
+                    " On CUDA runs the mps field is null and the cuda_* fields are exact peaks "
+                    "from the CUDA caching allocator (allocated = live tensors, reserved = "
+                    "allocator pool). Peak RSS is host memory only on CUDA but may include "
+                    "unified-memory GPU buffers on MPS, so RSS is not comparable across backends."
+                    if device == "cuda" else ""
+                )
             ),
         },
     }
 
-    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    check_output_path(args.out, args.overwrite)
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w") as f:
         json.dump(result, f, indent=2)
     print(f"Wrote {args.out}")
