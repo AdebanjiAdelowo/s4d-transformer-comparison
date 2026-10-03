@@ -64,7 +64,7 @@ flowchart LR
     CV <-.equal to float32 precision.-> RC
 ```
 
-## Headline result (read the caveats in `experiments.md` first)
+## Headline result (Apple MPS; read the caveats in `experiments.md` first)
 
 Across context lengths 64–1024, on char-level Tiny Shakespeare, with the *same* optimizer, LR
 schedule, batch size, seed, and model depth/width for both mixers (see `experiments.md` for exactly
@@ -85,6 +85,11 @@ tuning per architecture, a ~12% parameter-count mismatch, single dataset/seed/sc
 *Validation loss against step for each context length. The block_size = 1024 runs use 400
 iterations instead of 1,200 for both mixers, so compare the two mixers within a panel, not across
 panels (see `experiments.md`).*
+
+A separate sweep of the same experiment on an NVIDIA Tesla T4 (CUDA) is recorded as its own
+hardware dataset in [`results/cuda/`](results/cuda/), with its environment, results table and
+caveats in the "NVIDIA CUDA experiment: Tesla T4" section of [`experiments.md`](experiments.md).
+The numbers above remain the Apple MPS measurements.
 
 ## Numerical validation
 

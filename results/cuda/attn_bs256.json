@@ -1,0 +1,85 @@
+{
+  "tag": "context_length_sweep",
+  "mixer": "attn",
+  "device": "cuda",
+  "device_info": {
+    "requested": "cuda",
+    "resolved": "cuda",
+    "torch_version": "2.11.0+cu130",
+    "python_version": "3.13.15",
+    "platform": "Linux-6.6.122+-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cuda_version": "13.0",
+    "cudnn_version": 92700,
+    "gpu_name": "Tesla T4"
+  },
+  "config": {
+    "block_size": 256,
+    "n_layer": 4,
+    "n_embd": 128,
+    "n_head": 4,
+    "s4d_state": null,
+    "batch_size": 32,
+    "max_iters": 1200,
+    "lr": 0.001,
+    "seed": 42
+  },
+  "params": {
+    "total": 834432,
+    "excl_embeddings": 801664
+  },
+  "loss_curve": {
+    "steps": [
+      0,
+      200,
+      400,
+      600,
+      800,
+      1000,
+      1200
+    ],
+    "train_loss": [
+      4.209465980529785,
+      2.4433884620666504,
+      2.290947198867798,
+      2.0912415981292725,
+      1.9367269277572632,
+      1.8391685485839844,
+      1.794010877609253
+    ],
+    "val_loss": [
+      4.204894065856934,
+      2.450678586959839,
+      2.3145594596862793,
+      2.1379165649414062,
+      2.024228811264038,
+      1.9483455419540405,
+      1.9199670553207397
+    ]
+  },
+  "final_train_loss": 1.794010877609253,
+  "final_val_loss": 1.9199670553207397,
+  "final_val_perplexity": 6.820733758703261,
+  "timing": {
+    "total_seconds": 60.93741798400879,
+    "mean_step_seconds": 0.04230846544106801,
+    "tokens_per_second": 161319.60173599242,
+    "eval_seconds": 8.788807392120361,
+    "median_step_seconds": 0.042099833488464355,
+    "train_step_tokens_per_second": 193625.5525838142,
+    "definitions": {
+      "tokens_per_second": "training tokens processed / total_seconds. total_seconds spans the whole loop, so it includes periodic evaluation (eval_seconds), CPU-side batch assembly, and host-to-device copies. Same definition as the historical results/*.json files.",
+      "mean_step_seconds": "mean wall-clock time per optimizer step, from after batch assembly to after optimizer.step() followed by a device synchronize (torch.cuda.synchronize or torch.mps.synchronize). Includes the host-to-device batch copy; excludes evaluation and CPU batch assembly.",
+      "median_step_seconds": "median of the same per-step times; robust to warm-up steps",
+      "train_step_tokens_per_second": "training tokens processed / sum of per-step times, i.e. step-only throughput. Not comparable with tokens_per_second."
+    }
+  },
+  "memory": {
+    "peak_process_rss_bytes": 1221255168,
+    "mps_current_allocated_bytes_sampled_max": null,
+    "cuda_max_memory_allocated_bytes": 644866048,
+    "cuda_max_memory_reserved_bytes": 757071872,
+    "device_memory_api": "torch.cuda.max_memory_allocated() / max_memory_reserved(), exact peak since torch.cuda.reset_peak_memory_stats() immediately before step 0",
+    "note": "peak_process_rss_bytes is whole-process peak resident memory (coarse but device-independent). mps_current_allocated_bytes_sampled_max is sampled only at eval_interval checkpoints (not every step), so it is a LOWER BOUND on true peak MPS tensor allocation, not an exact peak -- torch's MPS backend does not expose a max_memory_allocated()-style true-peak counter the way CUDA does. Documented here rather than silently presented as an exact figure. On CUDA runs the mps field is null and the cuda_* fields are exact peaks from the CUDA caching allocator (allocated = live tensors, reserved = allocator pool). Peak RSS is host memory only on CUDA but may include unified-memory GPU buffers on MPS, so RSS is not comparable across backends."
+  }
+}
